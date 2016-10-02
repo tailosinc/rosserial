@@ -450,6 +450,7 @@ class Service:
         self.resp = Message(name+"Response", package, self.resp_def, md5res)
 
     def make_header(self, f):
+        ##print('header in %s'%(f))
         f.write('#ifndef _ROS_SERVICE_%s_h\n' % self.name)
         f.write('#define _ROS_SERVICE_%s_h\n' % self.name)
 
@@ -498,14 +499,14 @@ def MakeLibrary(package, output_path, rospack):
     # find the messages in this package
     messages = list()
     if os.path.exists(pkg_dir+"/msg"):
-        print('Exporting %s\n'%package)
-        sys.stdout.write('  Messages:')
-        sys.stdout.write('\n    ')
+        ###print('Exporting %s\n'%package)
+        #sys.stdout.write('  Messages:')
+        #sys.stdout.write('\n    ')
         for f in os.listdir(pkg_dir+"/msg"):
             if f.endswith(".msg"):
                 file = pkg_dir + "/msg/" + f
                 # add to list of messages
-                print('%s,'%f[0:-4], end='')
+                #print('%s,'%f[0:-4], end='')
                 definition = open(file).readlines()
                 md5sum = roslib.message.get_message_class(package+'/'+f[0:-4])._md5sum
                 messages.append( Message(f[0:-4], package, definition, md5sum) )
@@ -513,12 +514,12 @@ def MakeLibrary(package, output_path, rospack):
     # find the services in this package
     services = list()
     if (os.path.exists(pkg_dir+"/srv/")):
-        if messages == list():
-            print('Exporting %s\n'%package)
-        else:
-            print('\n')
-        sys.stdout.write('  Services:')
-        sys.stdout.write('\n    ')
+        #if messages == list():
+        #    #print('Exporting %s\n'%package)
+        #else:
+        #    print('\n')
+        #sys.stdout.write('  Services:')
+        #sys.stdout.write('\n    ')
         for f in os.listdir(pkg_dir+"/srv"):
             if f.endswith(".srv"):
                 file = pkg_dir + "/srv/" + f
@@ -529,9 +530,61 @@ def MakeLibrary(package, output_path, rospack):
                 md5req = roslib.message.get_service_class(package+'/'+f[0:-4])._request_class._md5sum
                 md5res = roslib.message.get_service_class(package+'/'+f[0:-4])._response_class._md5sum
                 messages.append( Service(f[0:-4], package, definition, md5req, md5res ) )
-        print('\n')
-    elif messages != list():
-        print('\n')
+        #print('\n')
+    #elif messages != list():
+        #print('\n')
+
+    # generate for each message
+    output_path = output_path + "/" + package
+    for msg in messages:
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        header = open(output_path + "/" + msg.name + ".h", "w")
+        msg.make_header(header)
+        header.close()
+
+def MakeLibrary(package, output_path, rospack, mapping):
+    global ROS_TO_EMBEDDED_TYPES
+    ROS_TO_EMBEDDED_TYPES = mapping
+    pkg_dir = rospack.get_path(package)
+
+    # find the messages in this package
+    messages = list()
+    if os.path.exists(pkg_dir+"/msg"):
+        ###print('Exporting %s\n'%package)
+        #sys.stdout.write('  Messages:')
+        #sys.stdout.write('\n    ')
+        for f in os.listdir(pkg_dir+"/msg"):
+            if f.endswith(".msg"):
+                file = pkg_dir + "/msg/" + f
+                # add to list of messages
+                #print('%s,'%f[0:-4], end='')
+                definition = open(file).readlines()
+                md5sum = roslib.message.get_message_class(package+'/'+f[0:-4])._md5sum
+                messages.append( Message(f[0:-4], package, definition, md5sum) )
+
+    # find the services in this package
+    services = list()
+    if (os.path.exists(pkg_dir+"/srv/")):
+        #if messages == list():
+        #    #print('Exporting %s\n'%package)
+        #else:
+        #    print('\n')
+        #sys.stdout.write('  Services:')
+        #sys.stdout.write('\n    ')
+        for f in os.listdir(pkg_dir+"/srv"):
+            if f.endswith(".srv"):
+                file = pkg_dir + "/srv/" + f
+                # add to list of messages
+                print('%s,'%f[0:-4], end='')
+                definition, service = roslib.srvs.load_from_file(file)
+                definition = open(file).readlines()
+                md5req = roslib.message.get_service_class(package+'/'+f[0:-4])._request_class._md5sum
+                md5res = roslib.message.get_service_class(package+'/'+f[0:-4])._response_class._md5sum
+                messages.append( Service(f[0:-4], package, definition, md5req, md5res ) )
+        #print('\n')
+    #elif messages != list():
+        #print('\n')
 
     # generate for each message
     output_path = output_path + "/" + package
@@ -565,13 +618,12 @@ def get_dependency_sorted_package_list(rospack):
     return [dependency_list, failed]
 
 def rosserial_generate(rospack, path, mapping):
-    # horrible hack -- make this die
+    # horrible hack -- make this die 
     global ROS_TO_EMBEDDED_TYPES
     ROS_TO_EMBEDDED_TYPES = mapping
 
     # find and sort all packages
     pkgs, failed = get_dependency_sorted_package_list(rospack)
-
     # gimme messages
     for p in pkgs:
         try:
