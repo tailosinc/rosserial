@@ -86,8 +86,8 @@ fd_in.close()
 parsed_contents = yaml.load(contents)
 
 microcontroller_ws = parsed_contents["microcontroller_ws"]
-header_op = microcontroller_ws + "/"  + parsed_contents["header_output_directory"]
-source_op = microcontroller_ws + "/" + parsed_contents["source_output_directory"]
+header_op = microcontroller_ws + "/"  + parsed_contents["header_output_directory"] + "/"
+source_op = microcontroller_ws + "/" + parsed_contents["source_output_directory"] + "/"
 custom_ws = parsed_contents["catkin_workspaces"]
 packages = parsed_contents["packages"]
 
@@ -111,8 +111,37 @@ rospack = rospkg.RosPack()
 for pkg in packages:
     print "\033[40;34mMaking library for\033[0m: %s" % (pkg)
     try:
-        rospack.get_path(pkg)
+        MakeLibrary(pkg, header_op, rospack, ROS_TO_EMBEDDED_TYPES)
     except rospkg.common.ResourceNotFound as e:
         print('\033[40;31mUnable to find package : %s. Messages cannot be built.\033[0m'%(pkg))
-    # MakeLibrary(pkg, header_op, rospack, ROS_TO_EMBEDDED_TYPES)
 
+# Copy the non-message files:
+if not os.path.exists(header_op + "/ros"):
+  os.makedirs(header_op + "/ros")
+if not os.path.exists(header_op + "/tf"):
+  os.makedirs(header_op + "/tf")
+if not os.path.exists(source_op):
+  os.makedirs(source_op)
+source_files = ["duration.cpp", "time.cpp"]
+base_header_files = ['ros/duration.h',
+                     'ros/msg.h',
+                     'ros/node_handle.h',
+                     'ros/publisher.h',
+                     'ros/service_client.h',
+                     'ros/service_server.h',
+                     'ros/subscriber.h',
+                     'ros/time.h',
+                     'tf/tf.h',
+                     'tf/transform_broadcaster.h']
+arduino_header_files = ['ArduinoHardware.h', 'ros.h']
+
+rosserial_client_dir = rospack.get_path("rosserial_client")
+rosserial_arduino_dir = rospack.get_path("rosserial_arduino")
+for f in source_files:
+  shutil.copy(rosserial_client_dir + "/src/ros_lib/" + f, source_op + f);
+
+for f in base_header_files:
+  shutil.copy(rosserial_client_dir + "/src/ros_lib/" + f, header_op + f);
+
+for f in arduino_header_files:
+  shutil.copy(rosserial_arduino_dir + "/src/ros_lib/" + f, header_op + f);
