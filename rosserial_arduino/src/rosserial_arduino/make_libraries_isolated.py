@@ -102,8 +102,7 @@ print ("----------------------------------------------------------------------")
 ros_package_path = os.environ["ROS_PACKAGE_PATH"]
 for ws in custom_ws:
     ros_package_path = ros_package_path + ":" + ws
-os.environ["ROS_PACKAGE_PATH"]
-
+os.environ["ROS_PACKAGE_PATH"] = ros_package_path
 # TODO: Check if the messages are built?
 rospack = rospkg.RosPack()
 # deps = get_dependency_sorted_package_list(rospack)
