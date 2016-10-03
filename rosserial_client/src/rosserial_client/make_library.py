@@ -524,7 +524,7 @@ def MakeLibrary(package, output_path, rospack):
             if f.endswith(".srv"):
                 file = pkg_dir + "/srv/" + f
                 # add to list of messages
-                print('%s,'%f[0:-4], end='')
+                # print('%s,'%f[0:-4], end='')
                 definition, service = roslib.srvs.load_from_file(file)
                 definition = open(file).readlines()
                 md5req = roslib.message.get_service_class(package+'/'+f[0:-4])._request_class._md5sum
@@ -576,7 +576,7 @@ def MakeLibrary(package, output_path, rospack, mapping):
             if f.endswith(".srv"):
                 file = pkg_dir + "/srv/" + f
                 # add to list of messages
-                print('%s,'%f[0:-4], end='')
+                # print('%s,'%f[0:-4], end='')
                 definition, service = roslib.srvs.load_from_file(file)
                 definition = open(file).readlines()
                 md5req = roslib.message.get_service_class(package+'/'+f[0:-4])._request_class._md5sum
