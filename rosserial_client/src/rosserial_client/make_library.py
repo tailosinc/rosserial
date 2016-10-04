@@ -542,6 +542,15 @@ def MakeLibrary(package, output_path, rospack):
         msg.make_header(header)
         header.close()
 
+def rosserial_generate_package(rospack, package, path, mapping):
+    global ROS_TO_EMBEDDED_TYPES
+    ROS_TO_EMBEDDED_TYPES = mapping
+    print("\033[40;35mMaking library for\033[0m: %s" % (package))
+    try:
+        MakeLibrary(package, path, rospack)
+    except rospkg.common.ResourceNotFound as e:
+        print('\033[40;31mUnable to find package : %s. Messages cannot be built.\033[0m'%(package))
+
 def rosserial_generate(rospack, path, mapping):
     # horrible hack -- make this die
     global ROS_TO_EMBEDDED_TYPES
@@ -550,12 +559,8 @@ def rosserial_generate(rospack, path, mapping):
     # gimme messages
     failed = []
     for p in sorted(rospack.list()):
-        try:
-            MakeLibrary(p, path, rospack)
-        except Exception as e:
-            failed.append(p + " ("+str(e)+")")
-            print('[%s]: Unable to build messages: %s\n' % (p, str(e)))
-            print(traceback.format_exc())
+        rosserial_generate_package(rospack, p, path, mapping)
+
     print('\n')
     if len(failed) > 0:
         print('*** Warning, failed to generate libraries for the following packages: ***')

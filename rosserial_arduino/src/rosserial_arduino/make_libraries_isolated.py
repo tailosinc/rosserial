@@ -38,8 +38,9 @@
 THIS_PACKAGE = "rosserial_arduino"
 
 __usage__ = """
-make_libraries.py generates the Arduino rosserial library files.  It 
-requires the location of your Arduino sketchbook/libraries folder.
+make_libraries_isolated.py generates the Arduino rosserial library files for a
+set of packages and installs them as per the directory structure provided in 
+a yaml config file.
 
 rosrun rosserial_arduino make_libraries.py <yaml config file>
 """
@@ -86,14 +87,14 @@ fd_in.close()
 parsed_contents = yaml.load(contents)
 
 microcontroller_ws = parsed_contents["microcontroller_ws"]
-header_op = microcontroller_ws + "/"  + parsed_contents["header_output_directory"] + "/"
-source_op = microcontroller_ws + "/" + parsed_contents["source_output_directory"] + "/"
+header_out = os.path.join(microcontroller_ws, parsed_contents["header_output_directory"])
+source_out = os.path.join(microcontroller_ws, parsed_contents["source_output_directory"])
 custom_ws = parsed_contents["catkin_workspaces"]
 packages = parsed_contents["packages"]
 
 print ("\033[40;33mMicrocontroller workspace:\033[0m %s " % microcontroller_ws)
-print ("\033[40;33mHeader output            :\033[0m %s " % header_op)
-print ("\033[40;33mSource output            :\033[0m %s " % source_op)
+print ("\033[40;33mHeader output            :\033[0m %s " % header_out)
+print ("\033[40;33mSource output            :\033[0m %s " % source_out)
 print ("\033[40;33mCatkin workspaces        :\033[0m %s " % custom_ws)
 print ("\033[40;33mPackages                 :\033[0m %s " % packages)
 print ("----------------------------------------------------------------------")
@@ -105,22 +106,19 @@ for ws in custom_ws:
 os.environ["ROS_PACKAGE_PATH"] = ros_package_path
 # TODO: Check if the messages are built?
 rospack = rospkg.RosPack()
-# deps = get_dependency_sorted_package_list(rospack)
 
 for pkg in packages:
-    print "\033[40;34mMaking library for\033[0m: %s" % (pkg)
-    try:
-        MakeLibrary(pkg, header_op, rospack, ROS_TO_EMBEDDED_TYPES)
-    except rospkg.common.ResourceNotFound as e:
-        print('\033[40;31mUnable to find package : %s. Messages cannot be built.\033[0m'%(pkg))
+  rosserial_generate_package(rospack, pkg, header_out, ROS_TO_EMBEDDED_TYPES)
 
 # Copy the non-message files:
-if not os.path.exists(header_op + "/ros"):
-  os.makedirs(header_op + "/ros")
-if not os.path.exists(header_op + "/tf"):
-  os.makedirs(header_op + "/tf")
-if not os.path.exists(source_op):
-  os.makedirs(source_op)
+header_ros_out = os.path.join(header_out, "ros")
+header_tf_out = os.path.join(header_out, "tf")
+if not os.path.exists(header_ros_out):
+  os.makedirs(header_ros_out)
+if not os.path.exists(header_tf_out):
+  os.makedirs(header_tf_out)
+if not os.path.exists(source_out):
+  os.makedirs(source_out)
 source_files = ["duration.cpp", "time.cpp"]
 base_header_files = ['ros/duration.h',
                      'ros/msg.h',
@@ -137,10 +135,10 @@ arduino_header_files = ['ArduinoHardware.h', 'ros.h']
 rosserial_client_dir = rospack.get_path("rosserial_client")
 rosserial_arduino_dir = rospack.get_path("rosserial_arduino")
 for f in source_files:
-  shutil.copy(rosserial_client_dir + "/src/ros_lib/" + f, source_op + f);
+  shutil.copy(os.path.join(rosserial_client_dir, "src/ros_lib/", f), os.path.join(source_out, f));
 
 for f in base_header_files:
-  shutil.copy(rosserial_client_dir + "/src/ros_lib/" + f, header_op + f);
+  shutil.copy(os.path.join(rosserial_client_dir, "src/ros_lib/", f), os.path.join(header_out, f));
 
 for f in arduino_header_files:
-  shutil.copy(rosserial_arduino_dir + "/src/ros_lib/" + f, header_op + f);
+  shutil.copy(os.path.join(rosserial_arduino_dir, "src/ros_lib/", f), os.path.join(header_out, f));
