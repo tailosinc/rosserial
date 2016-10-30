@@ -89,6 +89,11 @@ parsed_contents = yaml.load(contents)
 microcontroller_ws = parsed_contents["microcontroller_ws"]
 header_out = os.path.join(microcontroller_ws, parsed_contents["header_output_directory"])
 source_out = os.path.join(microcontroller_ws, parsed_contents["source_output_directory"])
+
+microcontroller_ws = os.path.expanduser(microcontroller_ws)
+header_out = os.path.expanduser(header_out)
+source_out = os.path.expanduser(source_out)
+
 custom_ws = parsed_contents["catkin_workspaces"]
 packages = parsed_contents["packages"]
 
