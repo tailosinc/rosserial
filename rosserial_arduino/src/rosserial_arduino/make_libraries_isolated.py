@@ -86,18 +86,16 @@ contents = fd_in.read()
 fd_in.close()
 parsed_contents = yaml.load(contents)
 
-microcontroller_ws = parsed_contents["microcontroller_ws"]
+microcontroller_ws = os.path.expanduser(parsed_contents["microcontroller_ws"])
+
 header_out = os.path.join(microcontroller_ws, parsed_contents["header_output_directory"])
 source_out = os.path.join(microcontroller_ws, parsed_contents["source_output_directory"])
-
-microcontroller_ws = os.path.expanduser(microcontroller_ws)
-header_out = os.path.expanduser(header_out)
-source_out = os.path.expanduser(source_out)
 
 custom_ws = parsed_contents["catkin_workspaces"]
 custom_ws = [os.path.expanduser(ws) for ws in custom_ws]
 packages = parsed_contents["packages"]
 
+print ("----------------------------------------------------------------------")
 print ("\033[40;33mMicrocontroller workspace:\033[0m %s " % microcontroller_ws)
 print ("\033[40;33mHeader output            :\033[0m %s " % header_out)
 print ("\033[40;33mSource output            :\033[0m %s " % source_out)
