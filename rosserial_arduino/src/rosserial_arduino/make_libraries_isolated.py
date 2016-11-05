@@ -32,14 +32,14 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-# 
+#
 # Modified by Bhavya Gupta for using config files
 
 THIS_PACKAGE = "rosserial_arduino"
 
 __usage__ = """
 make_libraries_isolated.py generates the Arduino rosserial library files for a
-set of packages and installs them as per the directory structure provided in 
+set of packages and installs them as per the directory structure provided in
 a yaml config file.
 
 rosrun rosserial_arduino make_libraries.py <yaml config file>
@@ -78,7 +78,7 @@ ROS_TO_EMBEDDED_TYPES = {
 if (len(sys.argv) < 2):
     print __usage__
     exit()
-    
+
 # get config file name
 config_file = sys.argv[1]
 fd_in = open(config_file)
@@ -95,6 +95,7 @@ header_out = os.path.expanduser(header_out)
 source_out = os.path.expanduser(source_out)
 
 custom_ws = parsed_contents["catkin_workspaces"]
+custom_ws = [os.path.expanduser(ws) for ws in custom_ws]
 packages = parsed_contents["packages"]
 
 print ("\033[40;33mMicrocontroller workspace:\033[0m %s " % microcontroller_ws)
