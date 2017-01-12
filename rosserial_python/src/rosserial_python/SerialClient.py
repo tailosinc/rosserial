@@ -498,8 +498,9 @@ class SerialClient:
                     rospy.loginfo("Wrong checksum for topic id and msg. Topic id: %d, name: %s", topic_id, topic_name)
 
             except IOError:
-                # One of the read calls had an issue. Just to be safe, request that the client
-                # reinitialize their topics.
+                # One of the read calls had an issue. Just to be safe,
+                # request that the client reinitialize their topics.
+                rospy.logwarn("Requesting reinitialization of client topics!")
                 self.requestTopics()
 
     def setPublishSize(self, bytes):
