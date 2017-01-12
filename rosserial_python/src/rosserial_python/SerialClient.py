@@ -468,7 +468,7 @@ class SerialClient:
 
                 if msg_len_checksum % 256 != 255:
                     rospy.loginfo("wrong checksum for msg length, length %d" %(msg_length))
-                    rospy.loginfo("chk is %d" % ord(msg_len_chk))
+                    rospy.loginfo("chk is %d", ord(msg_len_chk))
                     continue
 
                 # topic id (2 bytes)
@@ -492,10 +492,10 @@ class SerialClient:
                     try:
                         self.callbacks[topic_id](msg)
                     except KeyError:
-                        rospy.logerr("Tried to publish before configured. Topic id: %d, name: %s" % topic_id, topic_name)
+                        rospy.logerr("Tried to publish before configured. Topic id: %d, name: %s", topic_id, topic_name)
                     rospy.sleep(0.001)
                 else:
-                    rospy.loginfo("Wrong checksum for topic id and msg. Topic id: %d, name: %s" % topic_id, topic_name)
+                    rospy.loginfo("Wrong checksum for topic id and msg. Topic id: %d, name: %s", topic_id, topic_name)
 
             except IOError:
                 # One of the read calls had an issue. Just to be safe, request that the client
