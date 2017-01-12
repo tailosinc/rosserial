@@ -473,7 +473,7 @@ class SerialClient:
 
                 # topic id (2 bytes)
                 topic_id_header = self.tryRead(2)
-                topic_id, = struct.unpack("<h", topic_id_header)
+                topic_id, topic_name, = struct.unpack("<h", topic_id_header)
 
                 try:
                     msg = self.tryRead(msg_length)
@@ -492,7 +492,7 @@ class SerialClient:
                     try:
                         self.callbacks[topic_id](msg)
                     except KeyError:
-                        rospy.logerr("Tried to publish before configured, topic id %d" % topic_id)
+                        rospy.logerr("Tried to publish before configured. Topic id: %d, name: %s" % topic_id, topic_name)
                     rospy.sleep(0.001)
                 else:
                     rospy.loginfo("wrong checksum for topic id and msg")
