@@ -495,7 +495,7 @@ class SerialClient:
                         rospy.logerr("Tried to publish before configured. Topic id: %d, name: %s" % topic_id, topic_name)
                     rospy.sleep(0.001)
                 else:
-                    rospy.loginfo("wrong checksum for topic id and msg")
+                    rospy.loginfo("Wrong checksum for topic id and msg. Topic id: %d, name: %s" % topic_id, topic_name)
 
             except IOError:
                 # One of the read calls had an issue. Just to be safe, request that the client
