@@ -477,8 +477,11 @@ class SerialClient:
                 topic_id_header = self.tryRead(2)
                 topic_id, = struct.unpack("<h", topic_id_header)
 
-                if topic_id < 100:
+                if topic_id >= 0 and topic_id < 100:
                     topic_name = "system function"
+                elif topic_id < 0:
+                    topic_name = "invalid topic_id"
+                    rospy.logwarn("Invalid (negative) topic_id!")
                 else:
                     try:
                         topic_name = self.topics[topic_id]
