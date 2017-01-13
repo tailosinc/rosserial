@@ -470,7 +470,7 @@ class SerialClient:
 
                 if msg_len_checksum % 256 != 255:
                     rospy.loginfo("wrong checksum for msg length, length %d" %(msg_length))
-                    rospy.loginfo("chk is %d", ord(msg_len_chk))
+                    rospy.logdebug("chk is %d", ord(msg_len_chk))
                     continue
 
                 # topic id (2 bytes)
@@ -481,12 +481,12 @@ class SerialClient:
                     topic_name = "system function"
                 elif topic_id < 0:
                     topic_name = "invalid topic_id"
-                    rospy.logwarn("Invalid (negative) topic_id!")
+                    rospy.logdebug("Invalid (negative) topic_id!")
                 else:
                     try:
                         topic_name = self.topics[topic_id]
                     except KeyError:
-                        rospy.logwarn("No topic_name for id %d yet!", topic_id)
+                        rospy.logdebug("No topic_name for id %d yet!", topic_id)
                         topic_name = "not configured yet"
 
                 try:
