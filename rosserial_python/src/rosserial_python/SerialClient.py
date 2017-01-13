@@ -330,6 +330,8 @@ class SerialClient:
         self.timeout = timeout
         self.synced = False
 
+        self.topics = dict()
+
         self.pub_diagnostics = rospy.Publisher('/diagnostics', diagnostic_msgs.msg.DiagnosticArray, queue_size=10)
 
         if port== None:
@@ -519,10 +521,11 @@ class SerialClient:
             msg = TopicInfo()
             msg.deserialize(data)
             pub = Publisher(msg)
+            self.topics[msg.topic_id] = msg.topic_name
             self.publishers[msg.topic_id] = pub
             self.callbacks[msg.topic_id] = pub.handlePacket
             self.setPublishSize(msg.buffer_size)
-            rospy.loginfo("Setup publisher on %s [%s]" % (msg.topic_name, msg.message_type) )
+            rospy.loginfo("Setup publisher on topic: %s [id: %d] [type: %s]", msg.topic_name, msg.topic_id, msg.message_type)
         except Exception as e:
             rospy.logerr("Creation of publisher failed: %s", e)
 
@@ -532,10 +535,11 @@ class SerialClient:
             msg = TopicInfo()
             msg.deserialize(data)
             if not msg.topic_name in self.subscribers.keys():
+                self.topics[msg.topic_id] = msg.topic_name
                 sub = Subscriber(msg, self)
                 self.subscribers[msg.topic_name] = sub
                 self.setSubscribeSize(msg.buffer_size)
-                rospy.loginfo("Setup subscriber on %s [%s]" % (msg.topic_name, msg.message_type) )
+                rospy.loginfo("Setup subscriber on topic: %s [id: %d] [type: %s]", msg.topic_name, msg.topic_id, msg.message_type)
             elif msg.message_type != self.subscribers[msg.topic_name].message._type:
                 old_message_type = self.subscribers[msg.topic_name].message._type
                 self.subscribers[msg.topic_name].unregister()
@@ -591,6 +595,7 @@ class SerialClient:
             self.setPublishSize(msg.buffer_size)
             try:
                 srv = self.services[msg.topic_name]
+                self.topics[msg.topic_id] = msg.topic_name
             except:
                 srv = ServiceClient(msg, self)
                 rospy.loginfo("Setup service client on %s [%s]" % (msg.topic_name, msg.message_type) )
@@ -609,6 +614,7 @@ class SerialClient:
             self.setSubscribeSize(msg.buffer_size)
             try:
                 srv = self.services[msg.topic_name]
+                self.topics[msg.topic_id] = msg.topic_name
             except:
                 srv = ServiceClient(msg, self)
                 rospy.loginfo("Setup service client on %s [%s]" % (msg.topic_name, msg.message_type) )
