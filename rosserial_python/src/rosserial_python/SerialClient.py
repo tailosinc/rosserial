@@ -475,7 +475,16 @@ class SerialClient:
 
                 # topic id (2 bytes)
                 topic_id_header = self.tryRead(2)
-                topic_id, topic_name, = struct.unpack("<h", topic_id_header)
+                topic_id, = struct.unpack("<h", topic_id_header)
+
+                if topic_id < 100:
+                    topic_name = "system function"
+                else:
+                    try:
+                        topic_name = self.topics[topic_id]
+                    except KeyError:
+                        rospy.logwarn("No topic_name for id %d yet!", topic_id)
+                        topic_name = "not configured yet"
 
                 try:
                     msg = self.tryRead(msg_length)
