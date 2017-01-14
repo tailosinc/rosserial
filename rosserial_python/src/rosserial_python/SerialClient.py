@@ -330,6 +330,8 @@ class SerialClient:
         self.timeout = timeout
         self.synced = False
 
+        self.topics = dict()
+
         self.pub_diagnostics = rospy.Publisher('/diagnostics', diagnostic_msgs.msg.DiagnosticArray, queue_size=10)
 
         if port== None:
@@ -468,19 +470,31 @@ class SerialClient:
 
                 if msg_len_checksum % 256 != 255:
                     rospy.loginfo("wrong checksum for msg length, length %d" %(msg_length))
-                    rospy.loginfo("chk is %d" % ord(msg_len_chk))
+                    rospy.logdebug("chk is %d", ord(msg_len_chk))
                     continue
 
                 # topic id (2 bytes)
                 topic_id_header = self.tryRead(2)
                 topic_id, = struct.unpack("<h", topic_id_header)
 
+                if topic_id >= 0 and topic_id < 100:
+                    topic_name = "system function"
+                elif topic_id < 0:
+                    topic_name = "invalid topic_id"
+                    rospy.logdebug("Invalid (negative) topic_id!")
+                else:
+                    try:
+                        topic_name = self.topics[topic_id]
+                    except KeyError:
+                        rospy.logdebug("No topic_name for id %d yet!", topic_id)
+                        topic_name = "not configured yet"
+
                 try:
                     msg = self.tryRead(msg_length)
                 except IOError:
                     self.sendDiagnostics(diagnostic_msgs.msg.DiagnosticStatus.ERROR, "Packet Failed : Failed to read msg data")
                     rospy.loginfo("Packet Failed :  Failed to read msg data")
-                    rospy.loginfo("msg len is %d",len(msg))
+                    rospy.loginfo("msg len is %d. Topic id: %d, name: %s", len(msg), topic_id, topic_name)
                     raise
 
                 # checksum for topic id and msg
@@ -492,14 +506,15 @@ class SerialClient:
                     try:
                         self.callbacks[topic_id](msg)
                     except KeyError:
-                        rospy.logerr("Tried to publish before configured, topic id %d" % topic_id)
+                        rospy.logerr("Tried to publish before configured. Topic id: %d", topic_id)
                     rospy.sleep(0.001)
                 else:
-                    rospy.loginfo("wrong checksum for topic id and msg")
+                    rospy.loginfo("Wrong checksum for topic id and msg. Topic id: %d, name: %s", topic_id, topic_name)
 
             except IOError:
-                # One of the read calls had an issue. Just to be safe, request that the client
-                # reinitialize their topics.
+                # One of the read calls had an issue. Just to be safe,
+                # request that the client reinitialize their topics.
+                rospy.logwarn("Requesting reinitialization of client topics!")
                 self.requestTopics()
 
     def setPublishSize(self, bytes):
@@ -518,10 +533,11 @@ class SerialClient:
             msg = TopicInfo()
             msg.deserialize(data)
             pub = Publisher(msg)
+            self.topics[msg.topic_id] = msg.topic_name
             self.publishers[msg.topic_id] = pub
             self.callbacks[msg.topic_id] = pub.handlePacket
             self.setPublishSize(msg.buffer_size)
-            rospy.loginfo("Setup publisher on %s [%s]" % (msg.topic_name, msg.message_type) )
+            rospy.loginfo("Setup publisher on topic: %s [id: %d] [type: %s]", msg.topic_name, msg.topic_id, msg.message_type)
         except Exception as e:
             rospy.logerr("Creation of publisher failed: %s", e)
 
@@ -531,10 +547,11 @@ class SerialClient:
             msg = TopicInfo()
             msg.deserialize(data)
             if not msg.topic_name in self.subscribers.keys():
+                self.topics[msg.topic_id] = msg.topic_name
                 sub = Subscriber(msg, self)
                 self.subscribers[msg.topic_name] = sub
                 self.setSubscribeSize(msg.buffer_size)
-                rospy.loginfo("Setup subscriber on %s [%s]" % (msg.topic_name, msg.message_type) )
+                rospy.loginfo("Setup subscriber on topic: %s [id: %d] [type: %s]", msg.topic_name, msg.topic_id, msg.message_type)
             elif msg.message_type != self.subscribers[msg.topic_name].message._type:
                 old_message_type = self.subscribers[msg.topic_name].message._type
                 self.subscribers[msg.topic_name].unregister()
@@ -590,6 +607,7 @@ class SerialClient:
             self.setPublishSize(msg.buffer_size)
             try:
                 srv = self.services[msg.topic_name]
+                self.topics[msg.topic_id] = msg.topic_name
             except:
                 srv = ServiceClient(msg, self)
                 rospy.loginfo("Setup service client on %s [%s]" % (msg.topic_name, msg.message_type) )
@@ -608,6 +626,7 @@ class SerialClient:
             self.setSubscribeSize(msg.buffer_size)
             try:
                 srv = self.services[msg.topic_name]
+                self.topics[msg.topic_id] = msg.topic_name
             except:
                 srv = ServiceClient(msg, self)
                 rospy.loginfo("Setup service client on %s [%s]" % (msg.topic_name, msg.message_type) )
