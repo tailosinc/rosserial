@@ -498,7 +498,7 @@ namespace ros {
         rosserial_msgs::RequestParamRequest req;
         req.name  = (char*)name;
         publish(TopicInfo::ID_PARAMETER_REQUEST, &req);
-        uint16_t end_time = hardware_.time() + time_out;
+        uint32_t end_time = hardware_.time() + time_out;
         while(!param_recieved ){
           spinOnce();
           if (hardware_.time() > end_time) return false;
@@ -510,7 +510,7 @@ namespace ros {
         push_param_resp.success = false;
 
         publish(TopicInfo::ID_PARAMETER_PUSH, &req);
-        uint16_t end_time = hardware_.time() + time_out;
+        uint32_t end_time = hardware_.time() + time_out;
         while(!push_param_resp.success){
           spinOnce();
           if (hardware_.time() > end_time) return false;
