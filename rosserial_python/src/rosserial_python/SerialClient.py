@@ -377,6 +377,7 @@ class SerialClient:
         self.callbacks[TopicInfo.ID_SERVICE_CLIENT+TopicInfo.ID_SUBSCRIBER] = self.setupServiceClientSubscriber
         # custom endpoints
         self.callbacks[TopicInfo.ID_PARAMETER_REQUEST] = self.handleParameterRequest
+        self.callbacks[TopicInfo.ID_PARAMETER_PUSH] = self.handleParameterSetRequest
         self.callbacks[TopicInfo.ID_LOG] = self.handleLoggingRequest
         self.callbacks[TopicInfo.ID_TIME] = self.handleTimeRequest
 
@@ -684,6 +685,57 @@ class SerialClient:
         data_buffer = StringIO.StringIO()
         resp.serialize(data_buffer)
         self.send(TopicInfo.ID_PARAMETER_REQUEST, data_buffer.getvalue())
+
+    def handleParameterSetRequest(self, serial_data):
+        """ Receive parameters from device. Set them on the parameter server.
+
+        Supports only simple datatypes and arrays of such.
+        """
+        req = PushParamRequest()
+        req.deserialize(serial_data)
+
+        # TODO: REMOVE ME
+        rospy.loginfo("Received request to set {} with "
+                      "\nints: {} \nfloats: {} \nstrings:{}"
+                      .format(req.name, req.ints, req.floats, req.strings))
+        # self._send_parameter_push_response(success=True)
+
+        # Interpret the parameter name
+        param_name = req.name
+        if len(req.name) < 1:
+            rospy.logerr("Attempted to set a parameter without a name.")
+            return
+
+        # Interpret the parameter value
+        params = [req.ints, req.floats, req.strings]
+        params = [param for param in params if len(param) > 0]
+
+        if len(params) == 0:
+            rospy.logerr("No parameters available to be set for {}"
+                         .format(req.name))
+            self._send_parameter_push_response(success=False)
+            return
+
+        if len(params) > 1:
+            rospy.logerr("Attempted to set parameters of different types for {}"
+                         .format(req.name))
+            self._send_parameter_push_response(success=False)
+            return
+
+        rospy.set_param(param_name, params[0])
+
+        self._send_parameter_push_response(success=True)
+
+    def _send_parameter_push_response(self, success):
+        if not isinstance(success, bool):
+            rospy.logerr('Attempted to send a non-Bool parameter set response')
+            return
+
+        resp = PushParamResponse()
+        resp.success = success
+        data_buffer = StringIO.StringIO()
+        resp.serialize(data_buffer)
+        self.send(TopicInfo.ID_PARAMETER_PUSH, data_buffer.getvalue())
 
     def handleLoggingRequest(self, data):
         """ Forward logging information from serial device into ROS. """

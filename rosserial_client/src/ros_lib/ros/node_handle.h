@@ -41,6 +41,7 @@
 #include "rosserial_msgs/TopicInfo.h"
 #include "rosserial_msgs/Log.h"
 #include "rosserial_msgs/RequestParam.h"
+#include "rosserial_msgs/PushParam.h"
 
 #define SYNC_SECONDS        5
 
@@ -262,6 +263,8 @@ namespace ros {
               }else if (topic_ == TopicInfo::ID_PARAMETER_REQUEST){
                   req_param_resp.deserialize(message_in);
                   param_recieved= true;
+              }else if (topic_ == TopicInfo::ID_PARAMETER_PUSH){
+                  push_param_resp.deserialize(message_in);
               }else if(topic_ == TopicInfo::ID_TX_STOP){
                   configured_ = false;
               }else{
@@ -488,6 +491,7 @@ namespace ros {
     private:
       bool param_recieved;
       rosserial_msgs::RequestParamResponse req_param_resp;
+      rosserial_msgs::PushParamResponse push_param_resp;
 
       bool requestParam(const char * name, int time_out =  1000){
         param_recieved = false;
@@ -496,6 +500,18 @@ namespace ros {
         publish(TopicInfo::ID_PARAMETER_REQUEST, &req);
         uint16_t end_time = hardware_.time() + time_out;
         while(!param_recieved ){
+          spinOnce();
+          if (hardware_.time() > end_time) return false;
+        }
+        return true;
+      }
+
+      bool pushParam(const rosserial_msgs::PushParamRequest& req, const int time_out = 1000){
+        push_param_resp.success = false;
+
+        publish(TopicInfo::ID_PARAMETER_PUSH, &req);
+        uint16_t end_time = hardware_.time() + time_out;
+        while(!push_param_resp.success){
           spinOnce();
           if (hardware_.time() > end_time) return false;
         }
@@ -536,6 +552,34 @@ namespace ros {
         }
         return false;
       }
+
+      bool setParam(const char * name, int * param, const uint16_t length){
+        rosserial_msgs::PushParamRequest req;
+        req.name = (char*)name;
+        req.ints_length = length;
+        req.ints = (int32_t *) param;
+
+        return pushParam(req);
+      }
+
+      bool setParam(const char * name, float * param, const uint16_t length){
+        rosserial_msgs::PushParamRequest req;
+        req.name = (char*)name;
+        req.floats_length = length;
+        req.floats = param;
+
+        return pushParam(req);
+      }
+
+      bool setParam(const char * name, char** param, const uint16_t length){
+        rosserial_msgs::PushParamRequest req;
+        req.name = (char*)name;
+        req.strings_length = length;
+        req.strings = param;
+
+        return pushParam(req);
+      }
+
   };
 
 }
