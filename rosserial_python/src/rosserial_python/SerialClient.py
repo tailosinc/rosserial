@@ -694,12 +694,6 @@ class SerialClient:
         req = PushParamRequest()
         req.deserialize(serial_data)
 
-        # TODO: REMOVE ME
-        rospy.loginfo("Received request to set {} with "
-                      "\nints: {} \nfloats: {} \nstrings:{}"
-                      .format(req.name, req.ints, req.floats, req.strings))
-        # self._send_parameter_push_response(success=True)
-
         # Interpret the parameter name
         param_name = req.name
         if len(req.name) < 1:
