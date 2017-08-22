@@ -1,4 +1,6 @@
 string name
+
+# Fill only one of the int, float or string arrays
 int32[]   ints
 float32[] floats
 string[]  strings
