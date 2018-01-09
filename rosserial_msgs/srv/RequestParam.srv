@@ -1,7 +1,7 @@
 string name
 
 ---
-
+# Will fill only one of the three int, float or string arrays
 int32[]   ints
 float32[] floats
 string[]  strings

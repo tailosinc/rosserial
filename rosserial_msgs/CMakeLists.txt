@@ -9,6 +9,7 @@ add_message_files(FILES
                  )
 
 add_service_files(FILES
+                  PushParam.srv
                   RequestParam.srv
                   RequestMessageInfo.srv
                   RequestServiceInfo.srv
