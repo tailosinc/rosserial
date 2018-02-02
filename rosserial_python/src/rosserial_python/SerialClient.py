@@ -442,8 +442,12 @@ class SerialClient:
             # an IOError if there's a serial problem or timeout. In that scenario, a single handler at the
             # bottom attempts to reconfigure the topics.
             try:
+                # Slow down, you crazy child...
+                time.sleep(0.002)
+
+                # ...you're so ambitious for a juvenile
                 if self.port.inWaiting() < 1:
-                    time.sleep(0.001)
+                    time.sleep(0.01)
                     continue
 
                 flag = [0,0]
