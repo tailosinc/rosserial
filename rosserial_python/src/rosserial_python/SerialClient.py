@@ -138,7 +138,7 @@ class Subscriber:
         try:
             self.parent.send(self.id, data_buffer.getvalue())
         except SerialException as e:
-            rospy.logwarn("Send failed. Port might be missing {0}".format(e.what()))
+            rospy.logwarn_throttle(5, "Send failed. Port might be missing {0}".format(e.what()))
 
     def unregister(self):
         self.subscriber.unregister()
@@ -373,7 +373,7 @@ class SerialClient:
         self.buffer_in = -1
         self.resetCallbacks()
 
-        rospy.sleep(2.0) # TODO
+        # rospy.sleep(2.0) # TODO
         self.requestTopics()
 
         self.lastsync = rospy.Time.now()
@@ -539,7 +539,7 @@ class SerialClient:
                 # One of the read calls had an issue. Just to be safe,
                 # request that the client reinitialize their topics.
                 # rospy.logwarn("Requesting reinitialization of client topics!")
-                time.sleep(0.002)
+                # time.sleep(0.002)
                 self.requestTopics()
 
     def setPublishSize(self, bytes):
@@ -793,7 +793,7 @@ class SerialClient:
                         self.port.write(data)
                         return length
                     except SerialException as e:
-                        rospy.logwarn("Send failed")
+                        rospy.logwarn_throttle(5.0, "Send failed")
                         return -1
 
     def sendDiagnostics(self, level, msg_text):
