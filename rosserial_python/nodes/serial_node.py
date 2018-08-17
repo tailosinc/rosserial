@@ -81,14 +81,14 @@ if __name__=="__main__":
         while not rospy.is_shutdown():
             rospy.loginfo("Connecting to %s at %d baud" % (port_name,baud) )
             try:
+                rospy.loginfo("Recreating serial client.")
                 client = SerialClient(port_name, baud)
                 client.run()
             except KeyboardInterrupt:
                 break
             except SerialException:
-                sleep(1.0)
+                sleep(0.1)
                 continue
             except OSError:
-                sleep(1.0)
+                sleep(0.1)
                 continue
-
