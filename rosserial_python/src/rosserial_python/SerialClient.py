@@ -43,6 +43,7 @@ import thread
 import multiprocessing
 from serial import *
 import StringIO
+import termios
 
 from std_msgs.msg import Time
 from rosserial_msgs.msg import *
@@ -134,7 +135,10 @@ class Subscriber:
         """ Forward message to serial device. """
         data_buffer = StringIO.StringIO()
         msg.serialize(data_buffer)
-        self.parent.send(self.id, data_buffer.getvalue())
+        try:
+            self.parent.send(self.id, data_buffer.getvalue())
+        except SerialException as e:
+            rospy.logwarn_throttle(5, "Send failed. Port might be missing {0}".format(e.what()))
 
     def unregister(self):
         self.subscriber.unregister()
@@ -333,6 +337,8 @@ class SerialClient:
         self.topics = dict()
 
         self.pub_diagnostics = rospy.Publisher('/diagnostics', diagnostic_msgs.msg.DiagnosticArray, queue_size=10)
+        self.port_name = port
+        self.baud = baud
 
         if port== None:
             # no port specified, listen for any new port?
@@ -365,33 +371,45 @@ class SerialClient:
 
         self.buffer_out = -1
         self.buffer_in = -1
+        self.resetCallbacks()
 
+        # rospy.sleep(2.0) # TODO
+        self.requestTopics()
+
+        self.lastsync = rospy.Time.now()
+        signal.signal(signal.SIGINT, self.txStopRequest)
+
+    def resetCallbacks(self):
         self.callbacks = dict()
         # endpoints for creating new pubs/subs
         self.callbacks[TopicInfo.ID_PUBLISHER] = self.setupPublisher
         self.callbacks[TopicInfo.ID_SUBSCRIBER] = self.setupSubscriber
+
         # service client/servers have 2 creation endpoints (a publisher and a subscriber)
         self.callbacks[TopicInfo.ID_SERVICE_SERVER+TopicInfo.ID_PUBLISHER] = self.setupServiceServerPublisher
         self.callbacks[TopicInfo.ID_SERVICE_SERVER+TopicInfo.ID_SUBSCRIBER] = self.setupServiceServerSubscriber
         self.callbacks[TopicInfo.ID_SERVICE_CLIENT+TopicInfo.ID_PUBLISHER] = self.setupServiceClientPublisher
         self.callbacks[TopicInfo.ID_SERVICE_CLIENT+TopicInfo.ID_SUBSCRIBER] = self.setupServiceClientSubscriber
+
         # custom endpoints
         self.callbacks[TopicInfo.ID_PARAMETER_REQUEST] = self.handleParameterRequest
         self.callbacks[TopicInfo.ID_PARAMETER_PUSH] = self.handleParameterSetRequest
         self.callbacks[TopicInfo.ID_LOG] = self.handleLoggingRequest
         self.callbacks[TopicInfo.ID_TIME] = self.handleTimeRequest
 
-        rospy.sleep(2.0) # TODO
-        self.requestTopics()
-        self.lastsync = rospy.Time.now()
-
-        signal.signal(signal.SIGINT, self.txStopRequest)
-
     def requestTopics(self):
         """ Determine topics to subscribe/publish. """
-        self.port.flushInput()
-        # request topic sync
-        self.port.write("\xff" + self.protocol_ver + "\x00\x00\xff\x00\x00\xff")
+        try:
+            self.resetCallbacks()
+            self.port.flushInput()
+            # request topic sync
+            self.port.write("\xff" + self.protocol_ver + "\x00\x00\xff\x00\x00\xff")
+        except termios.error as e:
+            rospy.logwarn_throttle(5, "Caught termios error flushing requesting topics : {0}".format(e))
+            try:
+                self.port = Serial(self.port_name, self.baud, timeout=self.timeout*0.5)
+            except SerialException as e:
+                rospy.logwarn_throttle(5, "Port not ready.")
 
     def txStopRequest(self, signal, frame):
         """ send stop tx request to arduino when receive SIGINT(Ctrl-c)"""
@@ -520,7 +538,8 @@ class SerialClient:
             except IOError:
                 # One of the read calls had an issue. Just to be safe,
                 # request that the client reinitialize their topics.
-                rospy.logwarn("Requesting reinitialization of client topics!")
+                # rospy.logwarn("Requesting reinitialization of client topics!")
+                # time.sleep(0.002)
                 self.requestTopics()
 
     def setPublishSize(self, bytes):
@@ -770,8 +789,12 @@ class SerialClient:
                     msg_checksum = 255 - ( ((topic&255) + (topic>>8) + sum([ord(x) for x in msg]))%256 )
                     data = "\xff" + self.protocol_ver  + chr(length&255) + chr(length>>8) + chr(msg_len_checksum) + chr(topic&255) + chr(topic>>8)
                     data = data + msg + chr(msg_checksum)
-                    self.port.write(data)
-                    return length
+                    try:
+                        self.port.write(data)
+                        return length
+                    except SerialException as e:
+                        rospy.logwarn_throttle(5.0, "Send failed")
+                        return -1
 
     def sendDiagnostics(self, level, msg_text):
         msg = diagnostic_msgs.msg.DiagnosticArray()
