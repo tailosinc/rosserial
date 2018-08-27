@@ -493,7 +493,7 @@ namespace ros {
       rosserial_msgs::RequestParamResponse req_param_resp;
       rosserial_msgs::PushParamResponse push_param_resp;
 
-      bool requestParam(const char * name, int time_out =  1000){
+      bool requestParam(const char * name, int time_out = 200){
         param_recieved = false;
         rosserial_msgs::RequestParamRequest req;
         req.name  = (char*)name;
@@ -506,7 +506,7 @@ namespace ros {
         return true;
       }
 
-      bool pushParam(const rosserial_msgs::PushParamRequest& req, const int time_out = 1000){
+      bool pushParam(const rosserial_msgs::PushParamRequest& req, const int time_out = 200){
         push_param_resp.success = false;
 
         publish(TopicInfo::ID_PARAMETER_PUSH, &req);
