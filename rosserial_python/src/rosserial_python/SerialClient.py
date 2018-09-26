@@ -86,6 +86,81 @@ def load_service(package,service):
     mres = getattr(s, service+"Response")
     return srv,mreq,mres
 
+class TcpClient(object):
+    """ Simplify socket interaction for rosserial """
+
+    def __init__(self, host, port):
+        self.connected = False
+
+        self._host = host
+        self._port = port
+        self._check_connection()
+
+    def _check_connection(self):
+        if not self.connected:
+            try:
+                self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self._s.connect((self._host, self._port))
+                self._s.setblocking(0)
+                self.connected = True
+                return True
+            except socket.error:
+                self.connected = False
+                return False
+        else:
+            return True
+
+    def flushInput(self):
+        if not self._check_connection():
+            return
+
+        try:
+            self._s.recv(4096)
+        except socket.error:
+            pass
+
+    def write(self, data):
+        if not self._check_connection():
+            return
+
+        try:
+            self._s.sendall(data)
+        except socket.error:
+            self.connected = False
+
+    def read(self, count):
+        if not self._check_connection():
+            return ''
+
+        data = ''
+        while len(data) < count:
+            try:
+                chunk = self._s.recv(count - len(data))
+                data += chunk
+                if chunk == '':
+                    self._connected = False
+                    return data
+            # An error only indicates that data is not available
+            except socket.error:
+                time.sleep(0.02)
+                pass
+
+        return data
+
+    def inWaiting(self):
+        if not self._check_connection():
+            return 0
+
+        try:
+            read = self._s.recv(1024, socket.MSG_DONTWAIT|socket.MSG_PEEK)
+            if read == '':
+                self._connected = False
+
+            return len(read)
+        except socket.error:
+            return 0
+
+
 class Publisher:
     """
         Publisher forwards messages from the serial device to ROS.
