@@ -90,34 +90,27 @@ class TcpClient(object):
     """ Simplify socket interaction for rosserial """
 
     def __init__(self, host, port):
-        self.connected = False
+        self._connected = False
 
         self._host = host
         self._port = port
         self._check_connection()
 
     def _check_connection(self):
-        if not self.connected:
+        if not self._connected:
             try:
                 self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self._s.connect((self._host, self._port))
-                self._s.setblocking(0)
-                self.connected = True
+                self._connected = True
                 return True
             except socket.error:
-                self.connected = False
+                self._connected = False
                 return False
         else:
             return True
 
     def flushInput(self):
-        if not self._check_connection():
-            return
-
-        try:
-            self._s.recv(4096)
-        except socket.error:
-            pass
+        self.read(self.inWaiting())
 
     def write(self, data):
         if not self._check_connection():
@@ -126,10 +119,13 @@ class TcpClient(object):
         try:
             self._s.sendall(data)
         except socket.error:
-            self.connected = False
+            self._connected = False
 
     def read(self, count):
         if not self._check_connection():
+            return ''
+
+        if count <= 0:
             return ''
 
         data = ''
@@ -140,10 +136,10 @@ class TcpClient(object):
                 if chunk == '':
                     self._connected = False
                     return data
-            # An error only indicates that data is not available
+
             except socket.error:
-                time.sleep(0.02)
-                pass
+                self._connected = False
+                return ''
 
         return data
 
@@ -152,7 +148,7 @@ class TcpClient(object):
             return 0
 
         try:
-            read = self._s.recv(1024, socket.MSG_DONTWAIT|socket.MSG_PEEK)
+            read = self._s.recv(4096, socket.MSG_DONTWAIT | socket.MSG_PEEK)
             if read == '':
                 self._connected = False
 
@@ -452,6 +448,7 @@ class SerialClient:
         self.requestTopics()
 
         self.lastsync = rospy.Time.now()
+        self.lastqueuecheck = rospy.Time.now()
         signal.signal(signal.SIGINT, self.txStopRequest)
 
     def resetCallbacks(self):
@@ -509,7 +506,7 @@ class SerialClient:
 
             if bytes_remaining != 0:
                 rospy.logwarn("Serial Port read returned short (expected %d bytes, received %d instead)."
-                              % (length, len(length - bytes_remaining)))
+                              % (length, length - bytes_remaining))
                 raise IOError()
 
             return bytes(result)
@@ -535,13 +532,12 @@ class SerialClient:
             # an IOError if there's a serial problem or timeout. In that scenario, a single handler at the
             # bottom attempts to reconfigure the topics.
             try:
-                # Slow down, you crazy child...
-                time.sleep(0.002)
+                if (rospy.Time.now() - self.lastqueuecheck).to_sec() > 5.0:
+                    waiting = self.port.inWaiting()
+                    if waiting > 500:
+                        rospy.logwarn("Expect high latency. Rosserial queue size: " + `waiting`)
 
-                # ...you're so ambitious for a juvenile
-                if self.port.inWaiting() < 1:
-                    time.sleep(0.01)
-                    continue
+                    self.lastqueuecheck = rospy.Time.now()
 
                 flag = [0,0]
                 flag[0] = self.tryRead(1)

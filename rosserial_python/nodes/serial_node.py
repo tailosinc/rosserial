@@ -35,13 +35,15 @@
 
 __author__ = "mferguson@willowgarage.com (Michael Ferguson)"
 
+import sys
+import time
 import rospy
-from rosserial_python import SerialClient, RosSerialServer, TcpClient
-from serial import SerialException
-from time import sleep
+import socket
+import serial
 import multiprocessing
 
-import sys
+from rosserial_python import SerialClient, RosSerialServer, TcpClient
+
 
 if __name__=="__main__":
 
@@ -58,17 +60,17 @@ if __name__=="__main__":
         while not rospy.is_shutdown():
             rospy.loginfo("Connecting to %s at port %d" % ('localhost', tcp_portnum) )
             try:
-                rospy.loginfo("Recreating tcp client.")
+                rospy.loginfo("Creating TCP client.")
                 tcp_client = TcpClient('localhost', tcp_portnum)
                 client = SerialClient(tcp_client)
                 client.run()
             except KeyboardInterrupt:
                 break
             except socket.error:
-                sleep(0.1)
+                time.sleep(0.1)
                 continue
             except OSError:
-                sleep(0.1)
+                time.sleep(0.1)
                 continue
 
     # Use Serial Port
@@ -76,14 +78,14 @@ if __name__=="__main__":
         while not rospy.is_shutdown():
             rospy.loginfo("Connecting to %s at %d baud" % (port_name,baud) )
             try:
-                rospy.loginfo("Recreating serial client.")
+                rospy.loginfo("Creating serial client.")
                 client = SerialClient(port_name, baud)
                 client.run()
             except KeyboardInterrupt:
                 break
-            except SerialException:
-                sleep(0.1)
+            except serial.SerialException:
+                time.sleep(0.1)
                 continue
             except OSError:
-                sleep(0.1)
+                time.sleep(0.1)
                 continue
