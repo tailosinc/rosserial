@@ -815,7 +815,10 @@ class SerialClient:
         if len(param) == 1:
             param = param[0]
 
-        rospy.set_param(param_name, param)
+        try:
+            rospy.set_param(param_name, param)
+        except:
+            rospy.logerr("Error setting paramter : {0} = {1}".format(param_name, param))
 
         self._send_parameter_push_response(success=True)
 
