@@ -135,6 +135,7 @@ if not os.path.exists(source_out):
 source_files = ["duration.cpp", "time.cpp"]
 base_header_files = ['ros/duration.h',
                      'ros/msg.h',
+                     'ros/node_handle.h',
                      'ros/publisher.h',
                      'ros/service_client.h',
                      'ros/service_server.h',
@@ -142,7 +143,7 @@ base_header_files = ['ros/duration.h',
                      'ros/time.h',
                      'tf/tf.h',
                      'tf/transform_broadcaster.h']
-arduino_header_files = ['ros.h']
+arduino_header_files = ['ArduinoHardware.h', 'ros.h']
 
 rosserial_client_dir = rospack.get_path("rosserial_client")
 rosserial_arduino_dir = rospack.get_path("rosserial_arduino")

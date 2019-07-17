@@ -422,6 +422,12 @@ namespace ros {
         configured_ = true;
       }
 
+      // Maidbot modified: circumvent having to renegotiate topics
+      void configure()
+      {
+        configured_ = true;
+      }
+
       virtual int publish(int id, const Msg * msg)
       {
         if(id >= 100 && !configured_)
@@ -493,7 +499,7 @@ namespace ros {
       rosserial_msgs::RequestParamResponse req_param_resp;
       rosserial_msgs::PushParamResponse push_param_resp;
 
-      bool requestParam(const char * name, int time_out = 200){
+      bool requestParam(const char * name, int time_out =  200){
         param_recieved = false;
         rosserial_msgs::RequestParamRequest req;
         req.name  = (char*)name;
