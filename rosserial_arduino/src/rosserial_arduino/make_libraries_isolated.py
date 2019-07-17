@@ -35,6 +35,9 @@
 #
 # Modified by Bhavya Gupta for using config files
 
+import sys
+import os
+
 THIS_PACKAGE = "rosserial_arduino"
 
 __usage__ = """
@@ -45,11 +48,22 @@ a yaml config file.
 rosrun rosserial_arduino make_libraries.py <yaml config file>
 """
 
+# need correct inputs
+if (len(sys.argv) < 2):
+    print __usage__
+    exit()
+
+# all input/output paths are relative to the ROBOT_WS environment variable
+try:
+    robot_ws = os.environ['ROBOT_WS']
+except KeyError:
+    print("You must set the ROBOT_WS environment variable before running this script.")
+    exit()
+
 import rospkg
 import rosserial_client
 from rosserial_client.make_library import *
 import yaml
-import os
 
 # for copying files
 import shutil
@@ -74,11 +88,6 @@ ROS_TO_EMBEDDED_TYPES = {
     'Header'  :   ('std_msgs::Header',  0, MessageDataType, ['std_msgs/Header'])
 }
 
-# need correct inputs
-if (len(sys.argv) < 2):
-    print __usage__
-    exit()
-
 # get config file name
 config_file = sys.argv[1]
 fd_in = open(config_file)
@@ -86,12 +95,12 @@ contents = fd_in.read()
 fd_in.close()
 parsed_contents = yaml.load(contents)
 
-microcontroller_ws = os.path.expanduser(parsed_contents["microcontroller_ws"])
+microcontroller_ws = os.path.expanduser(robot_ws + "/../devices/samd")
 
 header_out = os.path.join(microcontroller_ws, parsed_contents["header_output_directory"])
 source_out = os.path.join(microcontroller_ws, parsed_contents["source_output_directory"])
 
-custom_ws = parsed_contents["catkin_workspaces"]
+custom_ws = [robot_ws + "/catkin_ws"]
 custom_ws = [os.path.expanduser(ws) for ws in custom_ws]
 packages = parsed_contents["packages"]
 
@@ -126,7 +135,6 @@ if not os.path.exists(source_out):
 source_files = ["duration.cpp", "time.cpp"]
 base_header_files = ['ros/duration.h',
                      'ros/msg.h',
-                     'ros/node_handle.h',
                      'ros/publisher.h',
                      'ros/service_client.h',
                      'ros/service_server.h',
@@ -134,7 +142,7 @@ base_header_files = ['ros/duration.h',
                      'ros/time.h',
                      'tf/tf.h',
                      'tf/transform_broadcaster.h']
-arduino_header_files = ['ArduinoHardware.h', 'ros.h']
+arduino_header_files = ['ros.h']
 
 rosserial_client_dir = rospack.get_path("rosserial_client")
 rosserial_arduino_dir = rospack.get_path("rosserial_arduino")
